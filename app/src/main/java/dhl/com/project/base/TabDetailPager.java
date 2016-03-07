@@ -89,6 +89,19 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         ViewUtils.inject(this, view);
         ViewUtils.inject(this, headerView);
         lvList.addHeaderView(headerView);
+        //设置下拉刷新
+        lvList.setOnRefreshListener(new RefreshListView.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                getDataFromService();
+
+            }
+
+            @Override
+            public void onLoadMore() {
+
+            }
+        });
         return view;
 
     }
@@ -126,6 +139,7 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
                 String result = (String) responseInfo.result;
                 System.out.println("页签详情页返回结果：" + result);
                 parseData(result);
+                lvList.onRefreshComplete(true);
 
             }
 
@@ -133,6 +147,7 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             public void onFailure(HttpException e, String s) {
                 Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
                 e.printStackTrace();
+                lvList.onRefreshComplete(false);
 
             }
         });

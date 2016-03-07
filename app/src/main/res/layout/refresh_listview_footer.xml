@@ -3,19 +3,19 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center"
-    android:background="#000"
+    android:background="#fff"
     android:orientation="horizontal" >
 
     <ProgressBar
-        android:id="@+id/pb_pull_list_header"
+        android:id="@+id/pb_pull_list_footer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_margin="5dp"
-        android:indeterminateDrawable="@drawable/custom_progress" />
+        android:indeterminateDrawable="@drawable/custom_progress"/>
 
     <TextView
-        android:id="@+id/tv_pull_list_header_title"
+        android:id="@+id/tv_pull_list_footer_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/loading"

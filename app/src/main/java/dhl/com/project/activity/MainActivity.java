@@ -36,7 +36,7 @@ public class MainActivity extends SlidingFragmentActivity {
         android.support.v4.app.FragmentTransaction transaction=fm.beginTransaction();
        transaction.replace(R.id.fl_content, new ContentFragment(), FRAGMENT_CONTENT);
     transaction.replace(R.id.fl_left_menu, new LeftMenuFragment(), FRAGMENT_LEFT_MENU);
-transaction.commit();
+    transaction.commit();
 
     }
     //获取侧边栏对象
