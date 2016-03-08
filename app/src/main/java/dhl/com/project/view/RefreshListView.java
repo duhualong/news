@@ -51,7 +51,7 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
     private int startY = -1;// 滑动起点的y坐标
     private int mHeaderViewHeight;
 
-    private int mCurrrentState = STATE_PULL_REFRESH;// 当前状态
+    private int mCurrentState = STATE_PULL_REFRESH;// 当前状态
     private TextView tvTitle;
     private TextView tvTime;
     private ImageView ivArrow;
@@ -127,7 +127,7 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
                     startY = (int) ev.getRawY();
                 }
 
-                if (mCurrrentState == STATE_REFRESHING) {// 正在刷新时不做处理
+                if (mCurrentState == STATE_REFRESHING) {// 正在刷新时不做处理
                     break;
                 }
 
@@ -138,11 +138,11 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
                     int padding = dy - mHeaderViewHeight;// 计算padding
                     mHeaderView.setPadding(0, padding, 0, 0);// 设置当前padding
 
-                    if (padding > 0 && mCurrrentState != STATE_RELEASE_REFRESH) {// 状态改为松开刷新
-                        mCurrrentState = STATE_RELEASE_REFRESH;
+                    if (padding > 0 && mCurrentState != STATE_RELEASE_REFRESH) {// 状态改为松开刷新
+                        mCurrentState = STATE_RELEASE_REFRESH;
                         refreshState();
-                    } else if (padding < 0 && mCurrrentState != STATE_PULL_REFRESH) {// 改为下拉刷新状态
-                        mCurrrentState = STATE_PULL_REFRESH;
+                    } else if (padding < 0 && mCurrentState != STATE_PULL_REFRESH) {// 改为下拉刷新状态
+                        mCurrentState = STATE_PULL_REFRESH;
                         refreshState();
                     }
 
@@ -153,11 +153,11 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
             case MotionEvent.ACTION_UP:
                 startY = -1;// 重置
 
-                if (mCurrrentState == STATE_RELEASE_REFRESH) {
-                    mCurrrentState = STATE_REFRESHING;// 正在刷新
+                if (mCurrentState == STATE_RELEASE_REFRESH) {
+                    mCurrentState = STATE_REFRESHING;// 正在刷新
                     mHeaderView.setPadding(0, 0, 0, 0);// 显示
                     refreshState();
-                } else if (mCurrrentState == STATE_PULL_REFRESH) {
+                } else if (mCurrentState == STATE_PULL_REFRESH) {
                     mHeaderView.setPadding(0, -mHeaderViewHeight, 0, 0);// 隐藏
                 }
 
@@ -172,7 +172,7 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
      * 刷新下拉控件的布局
      */
     private void refreshState() {
-        switch (mCurrrentState) {
+        switch (mCurrentState) {
             case STATE_PULL_REFRESH:
                 tvTitle.setText("下拉刷新");
                 ivArrow.setVisibility(View.VISIBLE);
@@ -236,10 +236,10 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
      */
     public void onRefreshComplete(boolean success) {
         if (isLoadingMore) {// 正在加载更多...
-            mFooterView.setPadding(0, -mFooterViewHeight, 0, 0);// 隐藏脚布局
+            mFooterView.setPadding(0, 0, 0, 0);// 隐藏脚布局
             isLoadingMore = false;
         } else {
-            mCurrrentState = STATE_PULL_REFRESH;
+            mCurrentState = STATE_PULL_REFRESH;
             tvTitle.setText("下拉刷新");
             ivArrow.setVisibility(View.VISIBLE);
             pbProgress.setVisibility(View.INVISIBLE);
@@ -269,7 +269,7 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
 
             if (getLastVisiblePosition() == getCount() - 1 && !isLoadingMore) {// 滑动到最后
                 System.out.println("到底了.....");
-                mFooterView.setPadding(0, mFooterViewHeight, 0, 0);// 显示
+                mFooterView.setPadding(0, 0, 0, 0);// 显示
                 setSelection(getCount() - 1);// 改变listview显示位置
 
                 isLoadingMore = true;
@@ -287,12 +287,13 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
 
     }
 
+
     OnItemClickListener mItemClickListener;
 
     @Override
     public void setOnItemClickListener(
             android.widget.AdapterView.OnItemClickListener listener) {
-        super.setOnItemClickListener(this);
+            super.setOnItemClickListener(this);
 
         mItemClickListener = listener;
     }
