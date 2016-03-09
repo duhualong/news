@@ -7,12 +7,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RadioGroup;
 
-import com.lidroid.xutils.ViewUtils;
-import com.lidroid.xutils.view.annotation.ViewInject;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
 import dhl.com.project.R;
 import dhl.com.project.base.BasePage;
 import dhl.com.project.impl.GovAffairsPager;
@@ -22,16 +21,16 @@ import dhl.com.project.impl.SettingPager;
 import dhl.com.project.impl.SmartServicePager;
 
 public class ContentFragment extends BaseFragment {
-    @ViewInject(R.id.rg_group)
-    private RadioGroup rgGroup;
-    @ViewInject(R.id.vp_content)
-    private ViewPager mViewPage;
+    @Bind(R.id.rg_group) RadioGroup rgGroup;
+    @Bind(R.id.vp_content) ViewPager mViewPage;
+
     private List<BasePage> mPageList;
 
     @Override
     public View initViews() {
       View view=  View.inflate(mActivity, R.layout.fragment_content,null);
-        ViewUtils.inject(this,view);
+      //  ViewUtils.inject(this,view);
+        ButterKnife.bind(this,view);
         return view;
     }
 
@@ -125,5 +124,11 @@ public class ContentFragment extends BaseFragment {
     public NewsCenterPager getNewsCenterPager(){
         return (NewsCenterPager) mPageList.get(1);
 
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
     }
 }

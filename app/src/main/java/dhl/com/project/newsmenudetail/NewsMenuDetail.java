@@ -7,12 +7,13 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
-import com.lidroid.xutils.ViewUtils;
 import com.lidroid.xutils.view.annotation.event.OnClick;
 import com.viewpagerindicator.TabPageIndicator;
 
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
 import dhl.com.project.R;
 import dhl.com.project.activity.MainActivity;
 import dhl.com.project.base.BaseMenuDetailPager;
@@ -43,11 +44,12 @@ import dhl.com.project.domain.NewsData;
  * 菜单详情页——新闻
  */
 public class NewsMenuDetail extends BaseMenuDetailPager implements ViewPager.OnPageChangeListener {
-    private ViewPager mViewPager;
+
     private ArrayList<TabDetailPager> mPagerList;
     private ArrayList<NewsData.NewsTabData> mNewsTabData;//页签网络数据
-    private TabPageIndicator mIndicator;
-
+@Bind(R.id.menu_detail) ViewPager mViewPager;
+    //初始化控件TabPageIndicator
+@Bind(R.id.indicator) TabPageIndicator mIndicator;
     public NewsMenuDetail(Activity activity, ArrayList<NewsData.NewsTabData> children) {
         super(activity);
         mNewsTabData=children;
@@ -56,10 +58,7 @@ public class NewsMenuDetail extends BaseMenuDetailPager implements ViewPager.OnP
     @Override
     public View initViews() {
         View view=View.inflate(mActivity, R.layout.news_menu_detail, null);
-        mViewPager= (ViewPager) view.findViewById(R.id.menu_detail);
-        ViewUtils.inject(this,view);
-        //初始化控件TabPageIndicator
-        mIndicator = (TabPageIndicator) view.findViewById(R.id.indicator);
+        ButterKnife.bind(this,view);
      //   mViewPager.addOnPageChangeListener(this);
 
         mIndicator.setOnPageChangeListener(this);

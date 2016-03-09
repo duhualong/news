@@ -1,15 +1,14 @@
 package dhl.com.project.impl;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Message;
+import android.text.TextUtils;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
-import com.lidroid.xutils.HttpUtils;
-import com.lidroid.xutils.exception.HttpException;
-import com.lidroid.xutils.http.ResponseInfo;
-import com.lidroid.xutils.http.callback.RequestCallBack;
-import com.lidroid.xutils.http.client.HttpRequest;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import dhl.com.project.activity.MainActivity;
@@ -22,6 +21,12 @@ import dhl.com.project.newsmenudetail.InteractMenuDetailPager;
 import dhl.com.project.newsmenudetail.NewsMenuDetail;
 import dhl.com.project.newsmenudetail.PhotoMenuDetailPager;
 import dhl.com.project.newsmenudetail.TopicMenuDetailPager;
+import dhl.com.project.util.CacheUtils;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * _ooOoo_
@@ -46,10 +51,11 @@ import dhl.com.project.newsmenudetail.TopicMenuDetailPager;
  * 佛祖保佑       永无BUG
  */
 public class NewsCenterPager extends BasePage {
+    private final static int NEWS_CENTER_MESSAGE_SUCCESS =100;
+
     //4个菜单详情页的集合
     private ArrayList<BaseMenuDetailPager> mPagers;
     private NewsData myNewsData;
-
     public NewsCenterPager(Activity activity) {
         super(activity);
     }
@@ -58,14 +64,13 @@ public class NewsCenterPager extends BasePage {
     public void initData() {
         tvTitle.setText("新闻");
         setSlidingMenuEnable(true);//关闭侧边栏
-//        TextView text=new TextView(mActivity);
-//        text.setText("");
-//        text.setTextColor(Color.RED);
-//        text.setTextSize(25);
-//        text.setGravity(Gravity.CENTER);
-//        //向framentlayout动态添加neir
-//        flContent.addView(text);
-        getDataFromService();
+       String cache= CacheUtils.getCache(GlobalContants.CATEGORIES_URL,mActivity);
+        if (!TextUtils.isEmpty(cache)){
+            //如果缓存存在无需访问网络直接解析数据
+        parseData(cache);
+        }
+        //不管有没有缓存都获取网络数据
+            getDataFromService();
 
 
     }
@@ -74,29 +79,62 @@ public class NewsCenterPager extends BasePage {
      * 从服务器获取数据
      */
     private void getDataFromService() {
-        HttpUtils utils=new HttpUtils();
-        //使用xutils发送请求
-        utils.send(HttpRequest.HttpMethod.GET, GlobalContants.CATEGORIES_URL, new RequestCallBack<String>() {
-            //访问成功
+        OkHttpClient client=new OkHttpClient();
+        Request request = new Request.Builder().url(GlobalContants.CATEGORIES_URL).build();
+        client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onSuccess(ResponseInfo responseInfo) {
-                String result = (String) responseInfo.result;
-                System.out.println("返回结果：" + result);
-                parseData(result);
-
-
+            public void onFailure(Call call, IOException e) {
+                Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
+                 e.printStackTrace();
             }
 
-            //访问失败
             @Override
-            public void onFailure(HttpException e, String s) {
-                Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
-                e.printStackTrace();
+            public void onResponse(Call call, Response response) throws IOException {
+                String result = response.body().string();
+            //    System.out.println("!!!!!!!!!返回结果!!!!!!!!!!：" + result);
 
+                Message message=Message.obtain();
+                message.what=NEWS_CENTER_MESSAGE_SUCCESS;
+                message.obj=result;
+                mHandler.sendMessage(message);
             }
         });
+//        HttpUtils utils=new HttpUtils();
+//        //使用xutils发送请求
+//        utils.send(HttpRequest.HttpMethod.GET, GlobalContants.CATEGORIES_URL, new RequestCallBack<String>() {
+//            //访问成功
+//            @Override
+//            public void onSuccess(ResponseInfo responseInfo) {
+//                String result = (String) responseInfo.result;
+//                System.out.println("返回结果：" + result);
+//                parseData(result);
+//
+//
+//            }
+//
+//            //访问失败
+//            @Override
+//            public void onFailure(HttpException e, String s) {
+//                Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
+//                e.printStackTrace();
+//
+//            }
+//        });
 
     }
+    private  Handler mHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            if (msg.what==NEWS_CENTER_MESSAGE_SUCCESS) {
+                String result = (String) msg.obj;
+                parseData(result);
+                CacheUtils.setCache(mActivity,GlobalContants.CATEGORIES_URL,result);
+            }
+            return false;
+        }
+    });
+
+
 
     /**
      * 解析数据
@@ -106,8 +144,8 @@ public class NewsCenterPager extends BasePage {
         myNewsData = gson.fromJson(result, NewsData.class);
         System.out.println("解析结果："+ myNewsData);
         //刷新侧边栏的数据
-       MainActivity mainui= (MainActivity) mActivity;
-        LeftMenuFragment leftMenuFragment=mainui.getLeftMenuFragment();
+       MainActivity mainUi= (MainActivity) mActivity;
+        LeftMenuFragment leftMenuFragment=mainUi.getLeftMenuFragment();
       leftMenuFragment.setMenuData(myNewsData);
         //准备四个菜单详情页
         mPagers=new ArrayList<BaseMenuDetailPager>();

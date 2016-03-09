@@ -3,6 +3,8 @@ package dhl.com.project.base;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
@@ -16,17 +18,15 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.lidroid.xutils.BitmapUtils;
-import com.lidroid.xutils.HttpUtils;
 import com.lidroid.xutils.ViewUtils;
-import com.lidroid.xutils.exception.HttpException;
-import com.lidroid.xutils.http.ResponseInfo;
-import com.lidroid.xutils.http.callback.RequestCallBack;
-import com.lidroid.xutils.http.client.HttpRequest;
 import com.lidroid.xutils.view.annotation.ViewInject;
 import com.viewpagerindicator.CirclePageIndicator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
 import dhl.com.project.R;
 import dhl.com.project.domain.NewsData;
 import dhl.com.project.domain.TabData;
@@ -35,6 +35,11 @@ import dhl.com.project.util.PreUtils;
 import dhl.com.project.view.RefreshListView;
 import dhl.com.project.view.TopNewsViewPager;
 import dhl.com.project.web.NewsDetailActivity;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * _ooOoo_
@@ -60,54 +65,45 @@ import dhl.com.project.web.NewsDetailActivity;
  * 页签详情页
  */
 public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnPageChangeListener {
+    private final static int TABLE_DETAIL_GET_MORE_SUCCESS = 101;
+    private final static int TABLE_DETAIL_GET_MORE_FALSE = 102;
+    private final static int TABLE_DETAIL_GET_DATA_SUCCESS = 103;
+    private final static int TABLE_DETAIL_GET_DATA_FALSE = 104;
     NewsData.NewsTabData mTabData;
     private TextView tvText;
     private String mUrl;
     private TabData mTabDetailData;
-    @ViewInject(R.id.tv_title)
-    private TextView tvTitle;//头条新闻的标题
-    @ViewInject(R.id.indicator)
-    private CirclePageIndicator mIndicator;//头条新闻位置指示器
-    @ViewInject(R.id.vp_news)
-    private TopNewsViewPager mViewPager;
-    private ArrayList<TabData.TopNewsData> mTopNewsList;
+    @Bind(R.id.tv_title)TextView tvTitle;//头条新闻的标题
+    @Bind(R.id.indicator)CirclePageIndicator mIndicator;//头条新闻位置指示器
+    @Bind(R.id.vp_news)TopNewsViewPager mViewPager;
     @ViewInject(R.id.lv_list)
     private RefreshListView lvList;//新闻列表
+    private ArrayList<TabData.TopNewsData> mTopNewsList;
     private ArrayList<TabData.TabNewsData> mNewsList;
     private NewsAdapter mNewsAdapter;
     private String mMoreUrl;
-
     public TabDetailPager(Activity activity, NewsData.NewsTabData newsTabData) {
         super(activity);
         mTabData = newsTabData;
         mUrl = GlobalContants.SERVICE_URL + mTabData.url;
     }
-
     @Override
     public View initViews() {
-//        tvText = new TextView(mActivity);
-//        tvText.setText("页签详情页");
-//        tvText.setTextColor(Color.RED);
-//        tvText.setGravity(Gravity.CENTER);
-//        tvText.setTextSize(25);
         View view = View.inflate(mActivity, R.layout.tab_detail_pager, null);
+        ViewUtils.inject(this,view);
         //加载头布局
         View headerView = View.inflate(mActivity, R.layout.list_header_topnews, null);
-        ViewUtils.inject(this, view);
-        ViewUtils.inject(this, headerView);
+        ButterKnife.bind(this, headerView);
         lvList.addHeaderView(headerView);
         //设置下拉刷新
         lvList.setOnRefreshListener(new RefreshListView.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 getDataFromService();
-
             }
-
             @Override
             public void onLoadMore() {
                 if (mMoreUrl != null) {
-
                     getMoreDataFromService();
                 } else {
                     Toast.makeText(mActivity, "已经是最后一页", Toast.LENGTH_SHORT).show();
@@ -119,22 +115,21 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         lvList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            System.out.println("点击当前页面：" + position);
+                System.out.println("点击当前页面：" + position);
                 //在本地记录已读
-              String ids=PreUtils.getString(mActivity,"read_ids","");
-                String readId=mNewsList.get(position).id;
+                String ids = PreUtils.getString(mActivity, "read_ids", "");
+                String readId = mNewsList.get(position).id;
                 if (!ids.contains(readId)) {
-                    ids = ids + readId+ ",";
-                    PreUtils.setString(mActivity,"read_ids",ids);
+                    ids = ids + readId + ",";
+                    PreUtils.setString(mActivity, "read_ids", ids);
                 }
-             //  mNewsAdapter.notifyDataSetChanged();
+                //  mNewsAdapter.notifyDataSetChanged();
                 changeReadState(view);//实现局部界面刷新，这个view就是被点击的对象
-               //跳转到新闻详情页
-                Intent intent=new Intent();
+                //跳转到新闻详情页
+                Intent intent = new Intent();
                 intent.setClass(mActivity, NewsDetailActivity.class);
                 intent.putExtra("url", mNewsList.get(position).url);
                 mActivity.startActivity(intent);
-
             }
         });
         return view;
@@ -144,77 +139,86 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
     /**
      * 改变已读新闻的颜色
      */
-    private void changeReadState(View view){
-      TextView tvTitle= (TextView) view.findViewById(R.id.tv_title);
+    private void changeReadState(View view) {
+        TextView tvTitle = (TextView) view.findViewById(R.id.tv_title);
         tvTitle.setTextColor(Color.GRAY);
-
-
     }
-
     /**
      * 加载下一页
      */
     private void getMoreDataFromService() {
-        HttpUtils utils = new HttpUtils();
-        utils.send(HttpRequest.HttpMethod.GET, mMoreUrl, new RequestCallBack<String>() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(mMoreUrl).build();
+        client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onSuccess(ResponseInfo<String> responseInfo) {
-                String result = responseInfo.result;
-                parseData(result, true);
-                lvList.onRefreshComplete(true);
-            }
-
-            @Override
-            public void onFailure(HttpException e, String s) {
-                Toast.makeText(mActivity, s, Toast.LENGTH_SHORT).show();
+            public void onFailure(Call call, IOException e) {
+                Toast.makeText(mActivity, "请求数据失败", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
-                lvList.onRefreshComplete(false);
+                Message message = Message.obtain();
+                message.what = TABLE_DETAIL_GET_MORE_FALSE;
+                mHandler.sendMessage(message);
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String result = response.body().string();
+                Message message = Message.obtain();
+                message.what = TABLE_DETAIL_GET_MORE_SUCCESS;
+                message.obj = result;
+                mHandler.sendMessage(message);
+
             }
         });
     }
 
+    private Handler mHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case TABLE_DETAIL_GET_MORE_SUCCESS:
+                    String result = (String) msg.obj;
+                    parseData(result, true);
+                    lvList.onRefreshComplete(true);
+                    break;
+                case TABLE_DETAIL_GET_MORE_FALSE:
+                    lvList.onRefreshComplete(false);
+                    break;
+                case TABLE_DETAIL_GET_DATA_SUCCESS:
+                    String resultData = (String) msg.obj;
+                    parseData(resultData, false);
+                    lvList.onRefreshComplete(true);
+                    break;
+                case TABLE_DETAIL_GET_DATA_FALSE:
+                    lvList.onRefreshComplete(false);
+                    break;
+            }
+            return false;
+        }
+    });
+
     @Override
     public void initData() {
-
         getDataFromService();
     }
-
     private void getDataFromService() {
-
-        HttpUtils utils = new HttpUtils();
-//        RequestParams requestParams=new RequestParams();
-//        requestParams.addBodyParameter("traineruid", "57");
-//        utils.send(HttpRequest.HttpMethod.POST,GlobalContants.LEARNCAR_URL,requestParams, new RequestCallBack<String>() {
-//            @Override
-//            public void onSuccess(ResponseInfo<String> responseInfo) {
-//                String result = (String) responseInfo.result;
-//                System.out.println("页签详情页返回结果：" + result);
-//                parseData1(result);
-//            }
-//
-//            @Override
-//            public void onFailure(HttpException e, String s) {
-//
-//            }
-//        });
-
-
-        utils.send(HttpRequest.HttpMethod.GET, mUrl, new RequestCallBack<String>() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(mUrl).build();
+        client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onSuccess(ResponseInfo<String> responseInfo) {
-                String result = (String) responseInfo.result;
-                System.out.println("页签详情页返回结果：" + result);
-                parseData(result, false);
-                lvList.onRefreshComplete(true);
-
-            }
-
-            @Override
-            public void onFailure(HttpException e, String s) {
+            public void onFailure(Call call, IOException e) {
                 Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
                 e.printStackTrace();
-                lvList.onRefreshComplete(false);
-
+                Message message = Message.obtain();
+                message.what = TABLE_DETAIL_GET_DATA_FALSE;
+                mHandler.sendMessage(message);
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String result = response.body().string();
+                //   System.out.println("页签详情页返回结果：" + result);
+                Message message = Message.obtain();
+                message.what = TABLE_DETAIL_GET_DATA_SUCCESS;
+                message.obj = result;
+                mHandler.sendMessage(message);
             }
         });
     }
@@ -227,11 +231,10 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
 //        System.out.println("页签解析详情："+learnCar);
 //
 //    }
-
     private void parseData(String result, boolean isMore) {
         Gson gson = new Gson();
         mTabDetailData = gson.fromJson(result, TabData.class);
-        System.out.println("页签解析详情：" + mTabDetailData);
+        //System.out.println("页签解析详情：" + mTabDetailData);
         //处理下一页链接
         String more = mTabDetailData.data.more;//更多页面的地址
         if (!TextUtils.isEmpty(more)) {
@@ -275,32 +278,25 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         tvTitle.setText(topNewsData.title);
 
     }
-
     @Override
     public void onPageScrollStateChanged(int state) {
 
     }
-
-
     class TopNewsAdapter extends PagerAdapter {
-
         private final BitmapUtils utils;
 
         public TopNewsAdapter() {
             utils = new BitmapUtils(mActivity);
             utils.configDefaultLoadingImage(R.drawable.topnews_item_default);//设置默认图片
         }
-
         @Override
         public int getCount() {
             return mTabDetailData.data.topnews.size();
         }
-
         @Override
         public boolean isViewFromObject(View view, Object object) {
             return view == object;
         }
-
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
             ImageView image = new ImageView(mActivity);
@@ -310,51 +306,39 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             container.addView(image);
             return image;
         }
-
         @Override
         public void destroyItem(ViewGroup container, int position, Object object) {
-
             container.removeView((View) object);
         }
     }
-
     /**
      * 新闻列表的适配器
      */
     class NewsAdapter extends BaseAdapter {
-
         private final BitmapUtils utils;
 
         public NewsAdapter() {
             utils = new BitmapUtils(mActivity);
             utils.configDefaultLoadingImage(R.drawable.pic_item_list_default);
-
         }
-
         @Override
         public int getCount() {
             return mNewsList.size();
         }
-
         @Override
         public TabData.TabNewsData getItem(int position) {
             return mNewsList.get(position);
         }
-
         @Override
         public long getItemId(int position) {
             return position;
         }
-
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             ViewHolder holder;
             if (convertView == null) {
                 convertView = View.inflate(mActivity, R.layout.list_news_item, null);
-                holder = new ViewHolder();
-                holder.ivPic = (ImageView) convertView.findViewById(R.id.iv_pic);
-                holder.tvTitle = (TextView) convertView.findViewById(R.id.tv_title);
-                holder.tvData = (TextView) convertView.findViewById(R.id.tv_data);
+                holder = new ViewHolder(convertView);
                 convertView.setTag(holder);
             } else {
                 holder = (ViewHolder) convertView.getTag();
@@ -363,20 +347,27 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             holder.tvTitle.setText(item.title);
             holder.tvData.setText(item.pubdate);
             utils.display(holder.ivPic, item.listimage);
-            String ids=PreUtils.getString(mActivity,"read_ids","");
-            if (ids.contains(getItem(position).id)){
+            String ids = PreUtils.getString(mActivity, "read_ids", "");
+            if (ids.contains(getItem(position).id)) {
                 holder.tvTitle.setTextColor(Color.GRAY);
 
-            }else {
+            } else {
                 holder.tvTitle.setTextColor(Color.BLACK);
             }
             return convertView;
         }
     }
-
     static class ViewHolder {
-        public TextView tvTitle;
-        public TextView tvData;
-        public ImageView ivPic;
+        @Bind(R.id.tv_title)
+        TextView tvTitle;
+        @Bind(R.id.tv_data)
+        TextView tvData;
+        @Bind(R.id.iv_pic)
+        ImageView ivPic;
+
+        public ViewHolder(View view) {
+            ButterKnife.bind(this, view);
+        }
     }
+
 }

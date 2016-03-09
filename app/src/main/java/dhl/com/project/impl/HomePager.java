@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
-
 import dhl.com.project.base.BasePage;
 
 /**
@@ -34,7 +33,6 @@ public class HomePager extends BasePage {
     public HomePager(Activity activity) {
         super(activity);
     }
-
     @Override
     public void initData() {
         tvTitle.setText("智慧北京");
@@ -45,7 +43,7 @@ public class HomePager extends BasePage {
         text.setTextColor(Color.RED);
         text.setTextSize(25);
         text.setGravity(Gravity.CENTER);
-        //向framentlayout动态添加neir
+        //向fragmentLayout动态添加
         flContent.addView(text);
 
 

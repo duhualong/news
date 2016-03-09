@@ -43,7 +43,7 @@ public class SmartServicePager extends BasePage {
         text.setTextColor(Color.RED);
         text.setTextSize(25);
         text.setGravity(Gravity.CENTER);
-        //向framentlayout动态添加neir
+        //向fragmentLayout动态添加
         flContent.addView(text);
 
     }

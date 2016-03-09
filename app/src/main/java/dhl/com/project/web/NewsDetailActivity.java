@@ -15,34 +15,45 @@ import android.webkit.WebViewClient;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import cn.sharesdk.framework.ShareSDK;
 import dhl.com.project.R;
 import dhl.com.project.cn.sharesdk.onekeyshare.OnekeyShare;
+import dhl.com.project.cn.sharesdk.onekeyshare.OnekeyShareTheme;
 
 /**
  * 新闻详情页面webView
  */
-public class NewsDetailActivity extends Activity implements View.OnClickListener {
+public class NewsDetailActivity extends Activity {
+@Bind(R.id.wv_web)WebView mWebView;
+@Bind(R.id.btn_back)ImageButton btnBack;
+@Bind(R.id.btn_size)ImageButton btnSize;
+@Bind(R.id.btn_share)ImageButton btnShare;
+@Bind(R.id.pb_progress)ProgressBar pbProgress;
+@OnClick({R.id.btn_back,R.id.btn_size,R.id.btn_share})
+    public void OnClickListener(View v){
+        switch (v.getId()) {
+            case R.id.btn_back:
+                onBackPressed();
+                break;
+            case R.id.btn_size:
+                showChooseDialog();
+                break;
+            case R.id.btn_share:
+                showShare();
+                break;
+        }
 
-    private WebView mWebView;
-    private ImageButton btnShare;
-    private ImageButton btnBack;
-    private ImageButton btnSize;
-    private ProgressBar pbProgress;
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_news_detail);
-        mWebView = (WebView) findViewById(R.id.wv_web);
-        btnBack = (ImageButton) findViewById(R.id.btn_back);
-        btnSize = (ImageButton) findViewById(R.id.btn_size);
-        btnShare = (ImageButton) findViewById(R.id.btn_share);
-        pbProgress = (ProgressBar) findViewById(R.id.pb_progress);
-        btnBack.setOnClickListener(this);
-        btnSize.setOnClickListener(this);
-        btnShare.setOnClickListener(this);
+       ButterKnife.bind(this);
         String url = getIntent().getStringExtra("url");
         WebSettings settings = mWebView.getSettings();
         settings.setJavaScriptEnabled(true);// 表示支持js
@@ -57,7 +68,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                System.out.println("网页开始加载");
+              //  System.out.println("网页开始加载");
                 if (!pbProgress.isShown()) {
                     pbProgress.setVisibility(View.VISIBLE);
                 }
@@ -68,7 +79,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
              */
             @Override
             public void onPageFinished(WebView view, String url) {
-                System.out.println("网页开始结束");
+              //  System.out.println("网页开始结束");
                 super.onPageFinished(view, url);
             }
 
@@ -93,7 +104,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
              */
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
-                System.out.println("加载进度:" + newProgress);
+               // System.out.println("加载进度:" + newProgress);
                 if (pbProgress.isShown()) {
                     pbProgress.setVisibility(View.INVISIBLE);
                 }
@@ -105,7 +116,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
              */
             @Override
             public void onReceivedTitle(WebView view, String title) {
-                System.out.println("网页标题:" + title);
+               // System.out.println("网页标题:" + title);
                 super.onReceivedTitle(view, title);
             }
         });
@@ -113,21 +124,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
         mWebView.loadUrl(url);// 加载网页
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.btn_back:
-                onBackPressed();
-                break;
-            case R.id.btn_size:
-                showChooseDialog();
-                break;
-            case R.id.btn_share:
-             showShare();
-                break;
-        }
 
-    }
 
     private int mCurrentChooseItem;//记录当前选中的item
 
@@ -145,7 +142,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
         builder.setSingleChoiceItems(items, mCurrentItem, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                System.out.println("选中：" + which);
+              //  System.out.println("选中：" + which);
                 mCurrentChooseItem = which;
 
 
@@ -186,6 +183,7 @@ public class NewsDetailActivity extends Activity implements View.OnClickListener
     private void showShare() {
         ShareSDK.initSDK(this);
         OnekeyShare oks = new OnekeyShare();
+        oks.setTheme(OnekeyShareTheme.CLASSIC);
         //关闭sso授权
         oks.disableSSOWhenAuthorize();
 

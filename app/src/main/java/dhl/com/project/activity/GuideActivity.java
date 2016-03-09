@@ -1,10 +1,10 @@
 package dhl.com.project.activity;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -15,37 +15,36 @@ import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import dhl.com.project.R;
 import dhl.com.project.util.PreUtils;
 
-public class GuideActivity extends AppCompatActivity {
+public class GuideActivity extends Activity {
+    @Bind(R.id.vp_guide)ViewPager vpGuide;
+    @Bind(R.id.ll_point_group)LinearLayout llPointGroup;
+    @Bind(R.id.view_red_point) View viewRedPoint;
+    @Bind(R.id.bt_start)Button btStart;
+    @OnClick(R.id.bt_start)
+    public void onStartClick(){
+        PreUtils.setBoolean(getApplicationContext(), "is_user_guide_showed", true);
+        startActivity(new Intent(GuideActivity.this, MainActivity.class));
+        finish();
 
-    private ViewPager vpGuide;
+    }
+
     private static final  int[] mImageIds=new int[]{R.drawable.guide_1,R.drawable.guide_2,R.drawable.guide_3};
     private ArrayList<ImageView> mImageViewList;
-    private LinearLayout llPointGroup;
+
     private int mPointWidth;
-    private View viewRedPoint;
-    private Button btStart;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide);
-        vpGuide = (ViewPager) findViewById(R.id.vp_guide);
-        llPointGroup = (LinearLayout) findViewById(R.id.ll_point_group);
-        viewRedPoint = findViewById(R.id.view_red_point);
-        btStart = (Button) findViewById(R.id.bt_start);
-        btStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //更新sp,表示已经展示新手引导
-
-                PreUtils.setBoolean(getApplicationContext(), "is_user_guide_showed", true);
-                startActivity(new Intent(GuideActivity.this, MainActivity.class));
-                finish();
-            }
-        });
+        ButterKnife.bind(this);
         initViews();
         vpGuide.setAdapter(new GuideAdapter());
         vpGuide.addOnPageChangeListener(new GuidePageListener());
@@ -151,5 +150,11 @@ public class GuideActivity extends AppCompatActivity {
         public void destroyItem(ViewGroup container, int position, Object object) {
             container.removeView((View)object);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ButterKnife.unbind(this);
     }
 }

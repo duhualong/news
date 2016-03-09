@@ -9,19 +9,18 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
-import com.lidroid.xutils.ViewUtils;
-import com.lidroid.xutils.view.annotation.ViewInject;
 
 import java.util.ArrayList;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
 import dhl.com.project.R;
 import dhl.com.project.activity.MainActivity;
 import dhl.com.project.domain.NewsData;
 import dhl.com.project.impl.NewsCenterPager;
 
 public class LeftMenuFragment extends BaseFragment{
-    @ViewInject(R.id.lv_list)
-    private ListView lvList;
+    @Bind(R.id.lv_list) ListView lvList;
     private int mCurrentPos;//当前被点击的菜单项
     private ArrayList<NewsData.NewsMenuData>mMenuList;
     private MenuAdapter mAdapter;
@@ -29,7 +28,7 @@ public class LeftMenuFragment extends BaseFragment{
     @Override
     public View initViews() {
         View view=View.inflate(mActivity, R.layout.fragment_left_menu, null);
-        ViewUtils.inject(this,view);
+        ButterKnife.bind(this,view);
         return view;
     }
 
@@ -106,13 +105,16 @@ public class LeftMenuFragment extends BaseFragment{
             if (mCurrentPos==position){
                 //当前绘制的view是否被选中，显示红色
                 tvTitle.setEnabled(true);
-
             }else {
                 tvTitle.setEnabled(false);
-
-
             }
             return view;
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
     }
 }

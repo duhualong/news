@@ -110,12 +110,9 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
         TextView textView= (TextView) mFooterView.findViewById(R.id.tv_pull_list_footer_title);
         mFooterView.measure(0, 0);
         mFooterViewHeight = mFooterView.getMeasuredHeight();
-
         mFooterView.setPadding(0, -mFooterViewHeight, 0, 0);// 隐藏
-
         this.setOnScrollListener(this);
     }
-
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
@@ -126,18 +123,14 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
                 if (startY == -1) {// 确保startY有效
                     startY = (int) ev.getRawY();
                 }
-
                 if (mCurrentState == STATE_REFRESHING) {// 正在刷新时不做处理
                     break;
                 }
-
                 int endY = (int) ev.getRawY();
                 int dy = endY - startY;// 移动便宜量
-
                 if (dy > 0 && getFirstVisiblePosition() == 0) {// 只有下拉并且当前是第一个item,才允许下拉
                     int padding = dy - mHeaderViewHeight;// 计算padding
                     mHeaderView.setPadding(0, padding, 0, 0);// 设置当前padding
-
                     if (padding > 0 && mCurrentState != STATE_RELEASE_REFRESH) {// 状态改为松开刷新
                         mCurrentState = STATE_RELEASE_REFRESH;
                         refreshState();
@@ -145,14 +138,11 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
                         mCurrentState = STATE_PULL_REFRESH;
                         refreshState();
                     }
-
                     return true;
                 }
-
                 break;
             case MotionEvent.ACTION_UP:
                 startY = -1;// 重置
-
                 if (mCurrentState == STATE_RELEASE_REFRESH) {
                     mCurrentState = STATE_REFRESHING;// 正在刷新
                     mHeaderView.setPadding(0, 0, 0, 0);// 显示
@@ -160,10 +150,7 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
                 } else if (mCurrentState == STATE_PULL_REFRESH) {
                     mHeaderView.setPadding(0, -mHeaderViewHeight, 0, 0);// 隐藏
                 }
-
                 break;
-
-
         }
         return super.onTouchEvent(ev);
     }
@@ -227,7 +214,6 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
 
     public interface OnRefreshListener {
         void onRefresh();
-
          void onLoadMore();// 加载下一页数据
     }
 
@@ -243,7 +229,6 @@ public class RefreshListView extends ListView implements AbsListView.OnScrollLis
             tvTitle.setText("下拉刷新");
             ivArrow.setVisibility(View.VISIBLE);
             pbProgress.setVisibility(View.INVISIBLE);
-
             mHeaderView.setPadding(0, -mHeaderViewHeight, 0, 0);// 隐藏
 
             if (success) {
