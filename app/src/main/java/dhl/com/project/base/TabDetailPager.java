@@ -31,6 +31,7 @@ import dhl.com.project.R;
 import dhl.com.project.domain.NewsData;
 import dhl.com.project.domain.TabData;
 import dhl.com.project.global.GlobalContants;
+import dhl.com.project.util.CacheUtils;
 import dhl.com.project.util.PreUtils;
 import dhl.com.project.view.RefreshListView;
 import dhl.com.project.view.TopNewsViewPager;
@@ -82,6 +83,7 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
     private ArrayList<TabData.TabNewsData> mNewsList;
     private NewsAdapter mNewsAdapter;
     private String mMoreUrl;
+    private Handler mHandlers;
     public TabDetailPager(Activity activity, NewsData.NewsTabData newsTabData) {
         super(activity);
         mTabData = newsTabData;
@@ -152,7 +154,6 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                Toast.makeText(mActivity, "请求数据失败", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
                 Message message = Message.obtain();
                 message.what = TABLE_DETAIL_GET_MORE_FALSE;
@@ -169,7 +170,6 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             }
         });
     }
-
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
@@ -180,14 +180,18 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
                     lvList.onRefreshComplete(true);
                     break;
                 case TABLE_DETAIL_GET_MORE_FALSE:
+                    Toast.makeText(mActivity, "请求数据失败", Toast.LENGTH_SHORT).show();
                     lvList.onRefreshComplete(false);
                     break;
                 case TABLE_DETAIL_GET_DATA_SUCCESS:
                     String resultData = (String) msg.obj;
                     parseData(resultData, false);
                     lvList.onRefreshComplete(true);
+                    //设置缓存
+                    CacheUtils.setCache(mActivity,mUrl,resultData);
                     break;
                 case TABLE_DETAIL_GET_DATA_FALSE:
+                    Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
                     lvList.onRefreshComplete(false);
                     break;
             }
@@ -197,6 +201,11 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
 
     @Override
     public void initData() {
+       String cache= CacheUtils.getCache(mUrl, mActivity);
+        if (!TextUtils.isEmpty(cache)){
+            parseData(cache,false);
+
+        }
         getDataFromService();
     }
     private void getDataFromService() {
@@ -205,7 +214,6 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                Toast.makeText(mActivity, "访问失败", Toast.LENGTH_LONG).show();
                 e.printStackTrace();
                 Message message = Message.obtain();
                 message.what = TABLE_DETAIL_GET_DATA_FALSE;
@@ -258,25 +266,38 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
                 mNewsAdapter = new NewsAdapter();
                 lvList.setAdapter(mNewsAdapter);
             }
+            //自动轮播条显示
+            if (mHandlers==null){
+                mHandlers=new Handler(new Handler.Callback() {
+                    @Override
+                    public boolean handleMessage(Message msg) {
+                      int currentItem=mViewPager.getCurrentItem();
+                        if (currentItem<mTopNewsList.size()-1){
+                            currentItem++;
+                        }else {
+                            currentItem=0;
+                        }
+                        mViewPager.setCurrentItem(currentItem);//切换到下一个页面
+                        mHandlers.sendEmptyMessageDelayed(0,3000);//继续延迟3秒发消息形成循环
+                        return false;
+                    }
+                });
+                mHandlers.sendEmptyMessageDelayed(0,3000);//延迟3秒发消息
+            }
         } else {
             //如果加载下一页，需要把数据加载到原来的集合
             ArrayList<TabData.TabNewsData> news = mTabDetailData.data.news;
             mNewsList.addAll(news);
             mNewsAdapter.notifyDataSetChanged();
         }
-
     }
-
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
     }
-
     @Override
     public void onPageSelected(int position) {
         TabData.TopNewsData topNewsData = mTopNewsList.get(position);
         tvTitle.setText(topNewsData.title);
-
     }
     @Override
     public void onPageScrollStateChanged(int state) {
@@ -364,7 +385,6 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
         TextView tvData;
         @Bind(R.id.iv_pic)
         ImageView ivPic;
-
         public ViewHolder(View view) {
             ButterKnife.bind(this, view);
         }
