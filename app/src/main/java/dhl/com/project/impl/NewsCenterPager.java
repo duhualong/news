@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Handler;
 import android.os.Message;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -137,7 +138,7 @@ public class NewsCenterPager extends BasePage {
         mPagers=new ArrayList<BaseMenuDetailPager>();
         mPagers.add(new NewsMenuDetail(mActivity,myNewsData.data.get(0).children));
         mPagers.add(new TopicMenuDetailPager(mActivity));
-        mPagers.add(new PhotoMenuDetailPager(mActivity));
+        mPagers.add(new PhotoMenuDetailPager(mActivity,btnPhoto));
         mPagers.add(new InteractMenuDetailPager(mActivity));
         setCurrentMenuDetailPager(0);//设置菜单详情页新闻-为默认页面
     }
@@ -152,6 +153,12 @@ public class NewsCenterPager extends BasePage {
       NewsData.NewsMenuData menuData= myNewsData.data.get(position);
         tvTitle.setText(menuData.title);
         pager.initData();//初始化当前页面的数据
+        if (pager instanceof PhotoMenuDetailPager) {
+        btnPhoto.setVisibility(View.VISIBLE);
+         }else {
+            btnPhoto.setVisibility(View.GONE);
+        }
+
 
     }
 }

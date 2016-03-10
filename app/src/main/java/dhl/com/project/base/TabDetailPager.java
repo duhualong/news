@@ -8,6 +8,7 @@ import android.os.Message;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -325,11 +326,35 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             TabData.TopNewsData topNewsData = mTopNewsList.get(position);
             utils.display(image, topNewsData.topimage);//传递imagView对象的图片地址
             container.addView(image);
+            image.setOnTouchListener(new TopNewsTouchListener());
             return image;
         }
         @Override
         public void destroyItem(ViewGroup container, int position, Object object) {
             container.removeView((View) object);
+        }
+    }
+
+    /**
+     * 头条新闻图片的触摸监听
+     */
+    class TopNewsTouchListener implements View.OnTouchListener{
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()){
+                case MotionEvent.ACTION_DOWN:
+                    //删除Handler中所有的消息
+                    mHandlers.removeCallbacksAndMessages(null);
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    mHandlers.sendEmptyMessageDelayed(0,3000);//事件取消
+                    break;
+                case MotionEvent.ACTION_UP:
+                    mHandlers.sendEmptyMessageDelayed(0,3000);
+                    break;
+            }
+            return true;
         }
     }
     /**
@@ -389,5 +414,4 @@ public class TabDetailPager extends BaseMenuDetailPager implements ViewPager.OnP
             ButterKnife.bind(this, view);
         }
     }
-
 }
