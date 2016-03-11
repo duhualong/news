@@ -33,6 +33,13 @@ import java.net.URL;
  * 网络缓存
  */
 public class NetCacheUtils {
+    private LocalCacheUtils mLocalCacheUtils;
+    private MemoryCacheUtils mMemoryCacheUtils;
+    public NetCacheUtils(LocalCacheUtils localCacheUtils, MemoryCacheUtils memoryCacheUtils) {
+        mLocalCacheUtils=localCacheUtils;
+        mMemoryCacheUtils=memoryCacheUtils;
+    }
+
     /**
      * 从网络下载图片
      * @param ivPic
@@ -89,6 +96,8 @@ new BitmapTask().execute(ivPic,url);//启动AsyncTask,在doInBackground获取
                 if (url.equals(bindUrl)) {
                     //确保图片设定给了imageView
                     ivPic.setImageBitmap(result);
+                    mLocalCacheUtils.setBitmapToLocal(url, result);
+                    mMemoryCacheUtils.setBitmapToMemory(url, result);
                 }
             }
         }
@@ -104,7 +113,11 @@ new BitmapTask().execute(ivPic,url);//启动AsyncTask,在doInBackground获取
             int responseCode=conn.getResponseCode();
             if (responseCode==200){
                InputStream inputStream= conn.getInputStream();
-                Bitmap bitmap=BitmapFactory.decodeStream(inputStream);
+                //图片压缩处理
+                BitmapFactory.Options option=new BitmapFactory.Options();
+                option.inSampleSize=2;//宽高都压缩为原来的1/2
+                option.inPreferredConfig=Bitmap.Config.RGB_565;//设置图片格式
+                Bitmap bitmap=BitmapFactory.decodeStream(inputStream,null,option);
                 return bitmap;
             }
 
